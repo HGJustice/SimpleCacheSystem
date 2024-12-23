@@ -5,7 +5,11 @@ use crate::types::CacheEntry;
 
 fn main() {
 
-    let cache = CacheSystem::<u32, String>::new();
-    let data = CacheEntry::<String>::new("hey".to_string());
+    let mut cache = CacheSystem::<u32, String>::new();
+    cache.insert_data(1, "wag1".to_string());
+    
+    let data = cache.get_data(1);
+    println!("{:?}", data);
+    
   
 }
