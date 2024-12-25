@@ -1,12 +1,22 @@
-
-
 use std::collections::HashMap;
 use std::hash::Hash;
 
 use crate::errors::CacheDataError;
 use crate::errors::CacheSystemError;
+use crate::errors::SerializeError;
 
 const MAX_SIZE: u32 = 5;
+
+pub trait CachePolicy<K> {
+    fn lru(&mut self) -> Option<K>;
+    fn fifo(&mut self) -> Option<K>;
+}
+
+pub trait Serializer<T> {
+    fn serialize_json(&self) -> Result<String, SerializeError>;
+    fn serialize_binary(&self) -> Result<Vec<u8>, SerializeError>;
+    fn deserialize(&self, data: &str) -> Result<T, SerializeError>;
+}
 
 #[derive(Debug)]
 pub struct CacheSystem<K: Eq + Hash, T> {
@@ -39,7 +49,7 @@ impl<K: Eq + Hash, T> CacheSystem<K, T> {
 
 #[derive(Debug)]
 pub struct CacheEntry<T> {
-    value: T,
+    pub value: T,
 }
 
 impl <T> CacheEntry<T> {
@@ -48,7 +58,4 @@ impl <T> CacheEntry<T> {
             value
         }
     }
-
-   
-    
 }

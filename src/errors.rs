@@ -14,3 +14,11 @@
     pub enum CacheDataError {
         InvalidData,
     }
+
+    #[derive(Debug)]
+    pub enum SerializeError{
+        JsonError, 
+        BinaryError, 
+        DeserializeError,
+        InvalidFormat
+    }
