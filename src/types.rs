@@ -47,6 +47,15 @@ impl<K: Eq + Hash, T> CacheSystem<K, T> {
     }
 }
 
+impl <K: Eq + Hash, T> CachePolicy<K> for CacheSystem<K, T>{
+    fn fifo(&mut self) -> Option<K> {
+        
+    }
+    fn lru(&mut self) -> Option<K> {
+        
+    }
+} 
+
 #[derive(Debug)]
 pub struct CacheEntry<T> {
     pub value: T,
