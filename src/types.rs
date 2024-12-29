@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::errors::CacheDataError;
 use crate::errors::CacheSystemError;
 use crate::errors::SerializeError;
 
-const MAX_SIZE: u32 = 5;
+const MAX_CACHE_SIZE: u32 = 10;
 
 pub trait CachePolicy<K> {
-    fn lru(&mut self) -> Option<K>;
-    fn fifo(&mut self) -> Option<K>;
+    fn lru(&mut self) -> Result<(), CacheSystemError>;
+    fn fifo(&mut self) -> Result<(), CacheSystemError>;
 }
 
 pub trait Serializer<T> {
@@ -31,7 +32,7 @@ impl<K: Eq + Hash, T> CacheSystem<K, T> {
     }
 
     pub fn insert_data(&mut self, key: K, data: T) -> Result<(), CacheSystemError> {
-        if self.entries.len() >= MAX_SIZE as usize {
+        if self.entries.len() >= MAX_CACHE_SIZE as usize {
            return Err(CacheSystemError::CacheFull);
         }
         self.entries.insert(key, CacheEntry::new(data));
@@ -47,24 +48,52 @@ impl<K: Eq + Hash, T> CacheSystem<K, T> {
     }
 }
 
-impl <K: Eq + Hash, T> CachePolicy<K> for CacheSystem<K, T>{
-    fn fifo(&mut self) -> Option<K> {
+impl <K: Eq + Hash, T> CachePolicy<K> for CacheSystem<K, T> {
+    fn fifo(&mut self) -> Result<(), CacheSystemError> {
+        if self.entries.len() < MAX_CACHE_SIZE as usize {
+            return Err(CacheSystemError::CacheNotFull);
+        }
+          let mut iter = self.entries.iter();
+          let mut oldest;
+          if let Some((mut oldest_key, mut oldest_value)) = iter.next() {
+            for (key, value) in iter {
+                if value.timestamp < oldest_value.timestamp {
+                    oldest_key = key;
+                    oldest_value = value;
+                }
+                oldest = oldest_key;
+            }
         
-    }
-    fn lru(&mut self) -> Option<K> {
+          } 
+          self.entries.remove(&oldest);
+          println!("Oldest data removed");
+          return Ok(());
+          Err(CacheSystemError::InvalidValue)
+        }
+}
+
+
+// impl Serializer<T> for CacheSystem<K, T> {
+//     fn serialize_json(&self) -> Result<String, SerializeError> {
         
-    }
-} 
+//     }
+
+// }
 
 #[derive(Debug)]
 pub struct CacheEntry<T> {
     pub value: T,
+    pub timestamp: SystemTime,
+    pub last_accessed: SystemTime,
+   
 }
 
 impl <T> CacheEntry<T> {
     pub fn new(value: T, ) -> CacheEntry<T> {
         CacheEntry {
-            value
+            value,
+            timestamp: SystemTime::now(),
+            last_accessed: SystemTime::now(),
         }
     }
 }

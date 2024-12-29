@@ -2,6 +2,7 @@
     #[derive(Debug)]
     pub enum CacheSystemError {
         CacheFull,
+        CacheNotFull,
         KeyNotFound, 
         InvalidValue,
         FIFOError,
