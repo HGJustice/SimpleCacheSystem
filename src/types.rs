@@ -19,6 +19,7 @@ pub trait Serializer<T> {
     fn deserialize(&self, data: &str) -> Result<T, SerializeError>;
 }
 
+
 #[derive(Debug)]
 pub struct CacheSystem<K: Eq + Hash, T> {
     entries: HashMap<K, CacheEntry<T>>,
@@ -55,21 +56,22 @@ impl <K: Eq + Hash, T> CachePolicy<K> for CacheSystem<K, T> {
         }
           let mut iter = self.entries.iter();
           let mut oldest;
+        
           if let Some((mut oldest_key, mut oldest_value)) = iter.next() {
             for (key, value) in iter {
-                if value.timestamp < oldest_value.timestamp {
+                if value.creation_timestamp < oldest_value.creation_timestamp {
                     oldest_key = key;
                     oldest_value = value;
                 }
-                oldest = oldest_key;
+               oldest = oldest_key;
             }
-        
+            self.entries.remove(&oldest);
+            println!("Oldest data removed");
+            return Ok(());
           } 
-          self.entries.remove(&oldest);
-          println!("Oldest data removed");
-          return Ok(());
           Err(CacheSystemError::InvalidValue)
         }
+        
 }
 
 
@@ -81,10 +83,11 @@ impl <K: Eq + Hash, T> CachePolicy<K> for CacheSystem<K, T> {
 // }
 
 #[derive(Debug)]
+#[derive(Copy, Clone)]
 pub struct CacheEntry<T> {
     pub value: T,
-    pub timestamp: SystemTime,
-    pub last_accessed: SystemTime,
+    pub creation_timestamp: SystemTime,
+    pub last_accessed_timestamp: SystemTime,
    
 }
 
@@ -92,8 +95,8 @@ impl <T> CacheEntry<T> {
     pub fn new(value: T, ) -> CacheEntry<T> {
         CacheEntry {
             value,
-            timestamp: SystemTime::now(),
-            last_accessed: SystemTime::now(),
+            creation_timestamp: SystemTime::now(),
+            last_accessed_timestamp: SystemTime::now(),
         }
     }
 }
