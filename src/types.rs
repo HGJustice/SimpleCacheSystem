@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::collections::VecDeque;
+use std::time::SystemTime;
 
-use crate::errors::CacheDataError;
+
 use crate::errors::CacheSystemError;
 use crate::errors::SerializeError;
 
@@ -21,14 +22,18 @@ pub trait Serializer<T> {
 
 
 #[derive(Debug)]
-pub struct CacheSystem<K: Eq + Hash, T> {
+pub struct CacheSystem<K: Eq + Hash + Clone, T> {
     entries: HashMap<K, CacheEntry<T>>,
+    order: VecDeque<K>,
+    recently_used: VecDeque<K>,
 }
 
-impl<K: Eq + Hash, T> CacheSystem<K, T> {
+impl<K: Eq + Hash + Clone, T> CacheSystem<K, T> {
     pub fn new() -> CacheSystem<K, T> {
         CacheSystem {
             entries: HashMap::new(),
+            order: VecDeque::new(),
+            recently_used: VecDeque::new(),
         }
     }
 
@@ -36,41 +41,49 @@ impl<K: Eq + Hash, T> CacheSystem<K, T> {
         if self.entries.len() >= MAX_CACHE_SIZE as usize {
            return Err(CacheSystemError::CacheFull);
         }
+        self.order.push_back(key.clone());
         self.entries.insert(key, CacheEntry::new(data));
 
         Ok(())
     }
 
-    pub fn get_data(&self, key: K) -> Option<&CacheEntry<T>>{
-        if self.entries.is_empty() {
-            return None;
+    pub fn get_data(&mut self, key: K) -> Option<&CacheEntry<T>>{
+        if let Some(entry) = self.entries.get(&key) {
+            self.recently_used.push_back(key);
+            Some(entry)
+        } else {
+            None
         }
-        self.entries.get(&key)
     }
 }
 
-impl <K: Eq + Hash, T> CachePolicy<K> for CacheSystem<K, T> {
+impl <K: Eq + Hash + Clone, T> CachePolicy<K> for CacheSystem<K, T> {
     fn fifo(&mut self) -> Result<(), CacheSystemError> {
         if self.entries.len() < MAX_CACHE_SIZE as usize {
             return Err(CacheSystemError::CacheNotFull);
         }
-          let mut iter = self.entries.iter();
-          let mut oldest;
-        
-          if let Some((mut oldest_key, mut oldest_value)) = iter.next() {
-            for (key, value) in iter {
-                if value.creation_timestamp < oldest_value.creation_timestamp {
-                    oldest_key = key;
-                    oldest_value = value;
-                }
-               oldest = oldest_key;
-            }
-            self.entries.remove(&oldest);
-            println!("Oldest data removed");
-            return Ok(());
-          } 
-          Err(CacheSystemError::InvalidValue)
+
+        if let Some(oldest_key) = self.order.pop_front(){
+            self.entries.remove(&oldest_key);
+            return Ok(())
+        } else {
+            Err(CacheSystemError::InvalidKey)
         }
+    }
+
+    fn lru(&mut self) -> Result<(), CacheSystemError> {
+        if self.entries.len() < MAX_CACHE_SIZE as usize {
+            return Err(CacheSystemError::CacheNotFull);
+        }
+
+        if let Some(oldest_key) = self.recently_used.pop_front(){
+            self.entries.remove(&oldest_key);
+            return Ok(())
+        }else {
+            Err(CacheSystemError::InvalidKey)
+        }
+
+    }
         
 }
 

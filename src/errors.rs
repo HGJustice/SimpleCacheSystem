@@ -4,7 +4,7 @@
         CacheFull,
         CacheNotFull,
         KeyNotFound, 
-        InvalidValue,
+        InvalidKey,
         FIFOError,
         LRUError,
         SerializationError,
