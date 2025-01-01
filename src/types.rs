@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::collections::VecDeque;
-use std::time::SystemTime;
 
+
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::errors::CacheSystemError;
 use crate::errors::SerializeError;
@@ -42,6 +44,7 @@ impl<K: Eq + Hash + Clone, T> CacheSystem<K, T> {
            return Err(CacheSystemError::CacheFull);
         }
         self.order.push_back(key.clone());
+        self.recently_used.push_back(key.clone());
         self.entries.insert(key, CacheEntry::new(data));
 
         Ok(())
@@ -49,11 +52,22 @@ impl<K: Eq + Hash + Clone, T> CacheSystem<K, T> {
 
     pub fn get_data(&mut self, key: K) -> Option<&CacheEntry<T>>{
         if let Some(entry) = self.entries.get(&key) {
+            self.recently_used.retain(|k| k != &key);
             self.recently_used.push_back(key);
             Some(entry)
         } else {
             None
         }
+    }
+
+    pub fn clear_cache(&mut self) -> Result<(), CacheSystemError> {
+        if self.entries.len() == 0 as usize {
+            return Err(CacheSystemError::CacheAlreadyEmpty)
+        }
+        self.entries.clear();
+        self.order.clear();
+        self.recently_used.clear();
+        Ok(())
     }
 }
 
@@ -82,34 +96,31 @@ impl <K: Eq + Hash + Clone, T> CachePolicy<K> for CacheSystem<K, T> {
         }else {
             Err(CacheSystemError::InvalidKey)
         }
-
     }
         
 }
 
+impl <K: Serialize + Eq + Hash + Clone, T: Serialize + for<'a> Deserialize<'a>> Serializer<T> for CacheSystem<K, T> {
+    fn serialize_json(&self) -> Result<String, SerializeError> {
+        serde_json::to_string(&self.entries).map_err(|_| SerializeError::JsonError)
+    }
+    fn serialize_binary(&self) -> Result<Vec<u8>, SerializeError> {
+        bincode::serialize(&self.entries).map_err(|_| SerializeError::BinaryError)
+    }
+    fn deserialize(&self, data: &str) -> Result<T, SerializeError> {
+        serde_json::from_str(data).map_err(|_| SerializeError::DeserializeError)
+    }
+}
 
-// impl Serializer<T> for CacheSystem<K, T> {
-//     fn serialize_json(&self) -> Result<String, SerializeError> {
-        
-//     }
-
-// }
-
-#[derive(Debug)]
-#[derive(Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CacheEntry<T> {
     pub value: T,
-    pub creation_timestamp: SystemTime,
-    pub last_accessed_timestamp: SystemTime,
-   
 }
 
 impl <T> CacheEntry<T> {
     pub fn new(value: T, ) -> CacheEntry<T> {
         CacheEntry {
             value,
-            creation_timestamp: SystemTime::now(),
-            last_accessed_timestamp: SystemTime::now(),
         }
     }
 }

@@ -4,7 +4,7 @@ use example::types::CacheSystem;
 
 #[test]
 fn test_new_cache_builds_is_empty(){
-    let cache = CacheSystem::<u32, String>::new();
+    let mut cache = CacheSystem::<u32, String>::new();
     let result = cache.get_data(1);
     assert!(result.is_none());
 }

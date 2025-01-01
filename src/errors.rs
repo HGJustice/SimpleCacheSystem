@@ -3,6 +3,7 @@
     pub enum CacheSystemError {
         CacheFull,
         CacheNotFull,
+        CacheAlreadyEmpty,
         KeyNotFound, 
         InvalidKey,
         FIFOError,
