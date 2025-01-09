@@ -2,14 +2,13 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::collections::VecDeque;
 
-
 use serde::Deserialize;
 use serde::Serialize;
 
 use crate::errors::CacheSystemError;
 use crate::errors::SerializeError;
 
-const MAX_CACHE_SIZE: u32 = 10;
+const MAX_CACHE_SIZE: u32 = 3;
 
 pub trait CachePolicy<K> {
     fn lru(&mut self) -> Result<(), CacheSystemError>;
@@ -22,12 +21,11 @@ pub trait Serializer<T> {
     fn deserialize(&self, data: &str) -> Result<T, SerializeError>;
 }
 
-
 #[derive(Debug)]
 pub struct CacheSystem<K: Eq + Hash + Clone, T> {
-    entries: HashMap<K, CacheEntry<T>>,
-    order: VecDeque<K>,
-    recently_used: VecDeque<K>,
+    pub entries: HashMap<K, CacheEntry<T>>,
+    pub order: VecDeque<K>,
+    pub recently_used: VecDeque<K>,
 }
 
 impl<K: Eq + Hash + Clone, T> CacheSystem<K, T> {
@@ -71,7 +69,7 @@ impl<K: Eq + Hash + Clone, T> CacheSystem<K, T> {
     }
 }
 
-impl <K: Eq + Hash + Clone, T> CachePolicy<K> for CacheSystem<K, T> {
+impl <K: Eq + Hash + Clone, T> CachePolicy<K> for CacheSystem<K, T> { // because the typee is generic we need to add these traits?
     fn fifo(&mut self) -> Result<(), CacheSystemError> {
         if self.entries.len() < MAX_CACHE_SIZE as usize {
             return Err(CacheSystemError::CacheNotFull);
@@ -112,7 +110,7 @@ impl <K: Serialize + Eq + Hash + Clone, T: Serialize + for<'a> Deserialize<'a>> 
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CacheEntry<T> {
     pub value: T,
 }

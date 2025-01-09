@@ -1,5 +1,4 @@
-pub mod types;
 pub mod errors;
-use crate::types::CacheSystem;
+pub mod types;
 use crate::types::CacheEntry;
-
+use crate::types::CacheSystem;
