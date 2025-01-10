@@ -110,7 +110,7 @@ impl <K: Serialize + Eq + Hash + Clone, T: Serialize + for<'a> Deserialize<'a>> 
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CacheEntry<T> {
     pub value: T,
 }

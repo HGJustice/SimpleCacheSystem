@@ -1,8 +1,11 @@
-use example::types::{CacheSystem, CachePolicy};
+use example::types::{CacheSystem, CachePolicy, CacheEntry};
 use example::errors::CacheSystemError;
+use std::collections::HashMap;
 
  mod tests {
  
+    use example::types::Serializer;
+
     use super::*;
 
     #[test]
@@ -53,7 +56,15 @@ use example::errors::CacheSystemError;
 
     #[test]
     fn test_serialize_deserialize(){
-
+        let mut cache = CacheSystem::<u32, String>::new();
+        cache.insert_data(1, String::from("Hello")).unwrap();
+        
+        let json = cache.serialize_json().unwrap();
+        let deserialized_json: HashMap<u32, CacheEntry<String>> = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized_json.get(&1).unwrap().value, "Hello".to_string());
+        
+        let binary_result = cache.serialize_binary().unwrap();
+        let deserialized_binary: HashMap<u32, CacheEntry<String>> = bincode::deserialize(&binary_result).unwrap();
+        assert_eq!(deserialized_binary.get(&1).unwrap().value, "Hello".to_string());
     }
-
- }
+}
